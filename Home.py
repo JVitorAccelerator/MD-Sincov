@@ -1,13 +1,10 @@
 import streamlit as st
 
-
 def main():
     with st.container():
         st.title("Perguntas relacionado ao SINCOV e análise da execução dos convênios")
         
         st.write("")
-    
-    
 
     with st.container():
 
