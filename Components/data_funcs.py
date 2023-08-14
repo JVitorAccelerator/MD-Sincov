@@ -30,10 +30,8 @@ def show_dataset(dataset):
     elif dataset == 'Fato':
         st.write(df_fato)
 
-datasets = ['Convenio', 'Data', 'Emenda', 'Localizacao', 'Parlamentar', 'Propostas', 'Fato']
-
-st.title('Visualizador de Datasets')
-selected_dataset = st.selectbox('Selecione um dataset:', datasets)
 
 
-show_dataset(selected_dataset)
+
+
+
