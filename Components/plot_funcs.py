@@ -74,4 +74,3 @@ def Analise_1(df_data,df_fato,df_propostas,df_localizacao):
     st.write(fig)
 
 
-
