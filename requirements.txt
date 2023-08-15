@@ -1,1 +1,6 @@
-streamlit-1.25.0
+numpy
+pandas
+pandas_profiling
+plotly
+streamlit
+streamlit_pandas_profiling
