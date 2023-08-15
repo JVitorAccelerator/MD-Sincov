@@ -113,7 +113,7 @@ selected_dataset = st.selectbox('Selecione uma dimensão:', datasets)
 
 
 
-st.title('📈Analises dos dados Sincov')
+st.title('📈Analises dos dados siconv')
 Analise_1(df_data,df_fato,df_propostas,df_localizacao,df_convenio)
 
 
