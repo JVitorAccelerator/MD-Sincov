@@ -35,6 +35,11 @@ def Analise_1(df_data,df_fato,df_propostas,df_localizacao):
     localizacao_filter = df_localizacao[['key','UF_PROPONENTE','MUNIC_PROPONENTE','NM_PROPONENTE']]
     localizacao_filter = localizacao_filter.rename(columns={'key': 'localizacaokey'})
     result = pd.merge(localizacao_filter, result, how="inner", on=['localizacaokey'])
+
+    convenio_filter = df_convenio[['key','SIT_CONVENIO']]
+    convenio_filter = convenio_filter.rename(columns={'key': 'conveniokey'})
+    result = pd.merge(convenio_filter, result, how="inner", on=['conveniokey'])
+
     result['count'] = result.groupby(['ano_texto','DES_ORGAO'])['OBJETO_PROPOSTA'].transform('count')
     df1 = pd.DataFrame(result.groupby(by=['ano_texto','DES_ORGAO','count'])['valorGlobal'].sum()) # Agrupando informações da tabela de ano e com a soma do valor global
     df1.reset_index(inplace=True) # Removendo index para a coluna ano aparecer
@@ -88,6 +93,19 @@ def Analise_1(df_data,df_fato,df_propostas,df_localizacao):
 
 
     #Adiciona filtro de estados, e criar um gráfico com a quantidade de situações dos convênios
+
+
+    st.title("Análise por ministérios")
+    st.sidebar.title("Opções de interatividade")
+    df_sit_convenio = pd.DataFrame(result.groupby(by=['ano_texto','DES_ORGAO','UF_PROPONENTE','MUNIC_PROPONENTE','OBJETO_PROPOSTA','SIT_CONVENIO'])['valorGlobal'].sum())
+    df_sit_convenio.reset_index(inplace=True)
+    df_sit_convenio = df_sit_convenio[df_sit_convenio['ano_texto'] == str(selecao_year)]
+    df_sit_convenio = df_sit_convenio[df_sit_convenio['DES_ORGAO'].isin(multiselect_orgao)]
+    selected_sit_convenio = st.sidebar.selectbox('Situação do convênio',set(df_sit_convenio['SIT_CONVENIO'].to_list()))
+    df_sit_convenio_filtrado = filter_df(df_sit_convenio,'SIT_CONVENIO',selected_sit_convenio)
+    selected_uf = st.sidebar.selectbox('UF',set(df_sit_convenio_filtrado['UF_PROPONENTE'].to_list()))
+    df_sit_convenio_filtrado2 = filter_df(df_sit_convenio_filtrado,'UF_PROPONENTE',selected_uf)
+    st.write(df_sit_convenio_filtrado2)
 
 def analise_2(ministerio, sit_convenio):
     filtered_propostas = df_propostas[df_propostas['DES_ORGAO'] == ministerio]
