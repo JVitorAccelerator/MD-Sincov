@@ -1,6 +1,20 @@
 import pandas as pd
 import plotly_express as px
 import streamlit as st
+import seaborn as sns
+import matplotlib as plt
+from Classes import dataframe
+
+df_convenio = dataframe.Dados.dimconvenio
+df_data = dataframe.Dados.dimdata
+df_emenda = dataframe.Dados.dimemenda
+df_localizacao = dataframe.Dados.dimlocalizacao
+df_parlamentar = dataframe.Dados.dimparlamentar
+df_propostas = dataframe.Dados.dimproposta
+df_fato = dataframe.Dados.fatoexecucao
+
+
+
 
 def Analise_1(df_data,df_fato,df_propostas,df_localizacao):
 
@@ -73,4 +87,26 @@ def Analise_1(df_data,df_fato,df_propostas,df_localizacao):
                 text_auto=True)
     st.write(fig)
 
+def analise_2(ministerio, sit_convenio):
+    filtered_propostas = df_propostas[df_propostas['DES_ORGAO'] == ministerio]
 
+    convenios_concluidos = df_convenio[df_convenio['SIT_CONVENIO'] == sit_convenio]
+    
+    # Filtrar localizações com convenios concluídos e propostas do ministério selecionado
+    
+    # Filtrar fatos com base nas localizações selecionadas
+    filtered_fato= df_fato[
+        (df_fato['propostakey'].isin(filtered_propostas['propostakey'])) &
+        (df_fato['conveniokey'].isin(convenios_concluidos['conveniokey']))
+    ]
+    merged_data = pd.merge(filtered_fato, df_localizacao, left_on='localizacaokey', right_on='localizacaokey', how='inner')
+    
+    # Criar pivot table para o heatmap
+    pivot_table = pd.pivot_table(merged_data, values='valor', index='Municipio', columns='Ano', aggfunc='sum', fill_value=0)
+    
+    plt.figure(figsize=(12, 8))
+    sns.heatmap(pivot_table, cmap='YlGnBu', annot=True, fmt=".2f")
+    plt.title(f'Mapa de Calor - Valor Desembolsado por Município (Ministério: {ministerio})')
+    plt.xlabel('Ano')
+    plt.ylabel('Município')
+    st.pyplot()
