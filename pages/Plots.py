@@ -24,8 +24,8 @@ st.sidebar.title("Opções de interatividade")
 ministerios = df_propostas['DES_ORGAO'].unique()
 sit_convenio = df_convenio['SIT_CONVENIO'].unique()
 selected_ministerio = st.sidebar.selectbox('Ministério:', ministerios)
-selected_sit_convenio = st.sidebar.selectbox('Situação do convênio')
-PF.analise_2(selected_ministerio, selected_sit_convenio)
+selected_sit_convenio = st.sidebar.selectbox('Situação do convênio',sit_convenio)
+#PF.analise_2(selected_ministerio, selected_sit_convenio)
 
 
 

@@ -76,16 +76,18 @@ def Analise_1(df_data,df_fato,df_propostas,df_localizacao):
 
     st.subheader(f"Quais os estados com maiores investimentos em {selecao_year} ?")
 
-    fig = px.bar(df_localizacaoGroupby, 
+    fig_estados = px.bar(df_localizacaoGroupby, 
                 x='UF_PROPONENTE', 
                 y='valorGlobal', 
                 labels={
                         'UF_PROPONENTE': 'Estado',
-                        'valorGlobal': 'Valor total'
+                        'valorGlobal': 'Total'
                     },
-                title=f"Total de investido por orgão em {selecao_year}",
-                text_auto=True)
-    st.write(fig)
+                title=f"Total de investido por orgão em {selecao_year}")
+    st.write(fig_estados)
+
+
+    #Adiciona filtro de estados, e criar um gráfico com a quantidade de situações dos convênios
 
 def analise_2(ministerio, sit_convenio):
     filtered_propostas = df_propostas[df_propostas['DES_ORGAO'] == ministerio]
