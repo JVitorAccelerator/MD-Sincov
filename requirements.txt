@@ -1,6 +1,6 @@
 numpy
 pandas
 pandas_profiling
-plotly
+plotly_express
 streamlit
 streamlit_pandas_profiling

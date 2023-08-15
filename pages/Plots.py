@@ -1,6 +1,6 @@
 from Classes import dataframe
 import streamlit as st
-from Components import data_funcs as D_Functions
+#from Components import data_funcs as D_Functions
 import pandas as pd
 import plotly_express as px
 
@@ -106,7 +106,7 @@ df_fato = dataframe.Dados.fatoexecucao
 datasets = ['Convenio', 'Data', 'Emenda', 'Localizacao', 'Parlamentar', 'Propostas', 'Fato']
 st.title('Visualizador de dimensões')
 selected_dataset = st.selectbox('Selecione uma dimensão:', datasets)
-D_Functions.show_dataset(selected_dataset)
+#D_Functions.show_dataset(selected_dataset)
 
 
 #PF.analise_2(selected_ministerio, selected_sit_convenio)
