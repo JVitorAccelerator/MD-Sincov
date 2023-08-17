@@ -3,6 +3,23 @@ import streamlit as st
 #from Components import data_funcs as D_Functions
 import pandas as pd
 import plotly_express as px
+import plotly.figure_factory as ff
+
+def show_dataset(dataset):
+    if dataset == 'Convenio':
+        st.write(df_convenio)
+    elif dataset == 'Data':
+        st.write(df_data)
+    elif dataset == 'Emenda':
+        st.write(df_emenda)
+    elif dataset == 'Localizacao':
+        st.write(df_localizacao)
+    elif dataset == 'Parlamentar':
+        st.write(df_parlamentar)
+    elif dataset == 'Propostas':
+        st.write(df_propostas)
+    elif dataset == 'Fato':
+        st.write(df_fato)
 
 def Analise_1(df_data,df_fato,df_propostas,df_localizacao,df_convenio):
 
@@ -36,7 +53,7 @@ def Analise_1(df_data,df_fato,df_propostas,df_localizacao,df_convenio):
     with st.expander('Filtros'):
         selecao_year = st.slider('Ano: ',min_value=min(lista_ano),max_value=max(lista_ano))
         filtro = filter_df(df1,'ano_texto',str(selecao_year))
-        multiselect_orgao = st.multiselect('Orgão:',filtro['DES_ORGAO'].to_list())
+        multiselect_orgao = st.multiselect('Orgão:',filtro['DES_ORGAO'].to_list(),['MINISTERIO DA DEFESA'])
         filtro = filtro[filtro["DES_ORGAO"].isin(multiselect_orgao)]
     lista_orgao_filtrada = filtro['DES_ORGAO'].to_list()
     lista_qtd_propostas = filtro['count'].to_list()
@@ -76,7 +93,12 @@ def Analise_1(df_data,df_fato,df_propostas,df_localizacao,df_convenio):
                         'UF_PROPONENTE': 'Estado',
                         'valorGlobal': 'Total'
                     },
-                title=f"Total de investido por orgão em {selecao_year}")
+                title=f"Total de investido por orgão em {selecao_year}",
+                text='valorGlobal')
+    #configura os textos para ficarem na parte de dentro das barras
+    fig_estados.update_traces(textposition='inside',texttemplate='%{text:.2s}')
+    #remove o eixo Y
+    fig_estados.update_yaxes(showticklabels=False)
     st.write(fig_estados)
 
 
@@ -84,16 +106,20 @@ def Analise_1(df_data,df_fato,df_propostas,df_localizacao,df_convenio):
 
 
     st.title("Análise por ministérios")
-    st.sidebar.title("Opções de interatividade")
     df_sit_convenio = pd.DataFrame(result.groupby(by=['ano_texto','DES_ORGAO','UF_PROPONENTE','MUNIC_PROPONENTE','OBJETO_PROPOSTA','SIT_CONVENIO'])['valorGlobal'].sum())
     df_sit_convenio.reset_index(inplace=True)
     df_sit_convenio = df_sit_convenio[df_sit_convenio['ano_texto'] == str(selecao_year)]
-    df_sit_convenio = df_sit_convenio[df_sit_convenio['DES_ORGAO'].isin(multiselect_orgao)]
-    selected_sit_convenio = st.sidebar.selectbox('Situação do convênio',set(df_sit_convenio['SIT_CONVENIO'].to_list()))
+    st.markdown("##### Nesta análise estamos usando a situação do convênio e o Estado")
+    selected_orgao = st.selectbox('Selecione o orgao:',set(df_sit_convenio['DES_ORGAO'].to_list()))
+    df_orgao_filtrado = filter_df(df_sit_convenio,'DES_ORGAO',selected_orgao)
+    col_convenio, col_uf = st.columns(2)
+    with col_convenio:
+        selected_sit_convenio = st.selectbox('Selecione a situação do convênio:',set(df_orgao_filtrado['SIT_CONVENIO'].to_list()))
     df_sit_convenio_filtrado = filter_df(df_sit_convenio,'SIT_CONVENIO',selected_sit_convenio)
-    selected_uf = st.sidebar.selectbox('UF',set(df_sit_convenio_filtrado['UF_PROPONENTE'].to_list()))
+    with col_uf:
+        selected_uf = st.selectbox('Selecione a UF:',set(df_sit_convenio_filtrado['UF_PROPONENTE'].to_list()))
     df_sit_convenio_filtrado2 = filter_df(df_sit_convenio_filtrado,'UF_PROPONENTE',selected_uf)
-    st.write(df_sit_convenio_filtrado2)
+    st.write(df_sit_convenio_filtrado2[['MUNIC_PROPONENTE','OBJETO_PROPOSTA','valorGlobal']])
 
 df_convenio = dataframe.Dados.dimconvenio
 df_data = dataframe.Dados.dimdata
@@ -106,12 +132,7 @@ df_fato = dataframe.Dados.fatoexecucao
 datasets = ['Convenio', 'Data', 'Emenda', 'Localizacao', 'Parlamentar', 'Propostas', 'Fato']
 st.title('Visualizador de dimensões')
 selected_dataset = st.selectbox('Selecione uma dimensão:', datasets)
-#D_Functions.show_dataset(selected_dataset)
-
-
-#PF.analise_2(selected_ministerio, selected_sit_convenio)
-
-
+show_dataset(selected_dataset)
 
 st.title('📈Analises dos dados siconv')
 Analise_1(df_data,df_fato,df_propostas,df_localizacao,df_convenio)
