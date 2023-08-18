@@ -104,9 +104,17 @@ def Analise_1(df_data,df_fato,df_propostas,df_localizacao,df_convenio):
 
     lista_ano = set(df1['ano_texto'].map(int).to_list())
     with st.expander('Filtros'):
-        selecao_year = st.slider('Ano: ',min_value=min(lista_ano),max_value=max(lista_ano))
+        selecao_year = st.slider(
+            label='Ano: ',
+            min_value=min(lista_ano),
+            max_value=max(lista_ano),
+            key="0")
         filtro = filter_df(df1,'ano_texto',str(selecao_year))
-        multiselect_orgao = st.multiselect('Orgão:',filtro['DES_ORGAO'].to_list(),['MINISTERIO DA DEFESA'])
+        multiselect_orgao = st.multiselect(
+            label='Orgão:',
+            options=filtro['DES_ORGAO'].to_list(),
+            default=['MINISTERIO DA DEFESA'],
+            key="1")
         filtro = filtro[filtro["DES_ORGAO"].isin(multiselect_orgao)]
     lista_orgao_filtrada = filtro['DES_ORGAO'].to_list()
     lista_qtd_propostas = filtro['count'].to_list()
@@ -262,12 +270,21 @@ def Analise_2(df_data,df_fato,df_propostas,df_localizacao,df_convenio):
     df1 = pd.DataFrame(result.groupby(by=['ano_texto','DES_ORGAO','count'])['valorGlobal'].sum()) # Agrupando informações da tabela de ano e com a soma do valor global
     df1.reset_index(inplace=True) # Removendo index para a coluna ano aparecer
 
-    lista_year = set(df1['ano_texto'].map(int).to_list())
-    st.write(min(lista_year))
+
+    lista_ano = set(df1['ano_texto'].map(int).to_list())
+    
     with st.expander('Filtros'):
-        selecao_year = st.slider('Ano: ',min_value=min(lista_year),max_value=max(lista_year))
+        selecao_year = st.slider(
+            label='Ano: ',
+            min_value=min(lista_ano),
+            max_value=max(lista_ano),
+            key="2")
         filtro = filter_df(df1,'ano_texto',str(selecao_year))
-        multiselect_orgao = st.multiselect('Orgão:',filtro['DES_ORGAO'].to_list(),['MINISTERIO DA DEFESA'])
+        multiselect_orgao = st.multiselect(
+            label='Orgão:',
+            options=filtro['DES_ORGAO'].to_list(),
+            default=['MINISTERIO DA DEFESA'],
+            key="3")
         filtro = filtro[filtro["DES_ORGAO"].isin(multiselect_orgao)]
     lista_orgao_filtrada = filtro['DES_ORGAO'].to_list()
     lista_qtd_propostas = filtro['count'].to_list()
@@ -326,14 +343,23 @@ def Analise_2(df_data,df_fato,df_propostas,df_localizacao,df_convenio):
     df_sit_convenio.reset_index(inplace=True)
     df_sit_convenio = df_sit_convenio[df_sit_convenio['ano_texto'] == str(selecao_year)]
     st.markdown("##### Nesta análise estamos usando a situação do convênio e o Estado")
-    selected_orgao = st.selectbox('Selecione o orgao:',set(df_sit_convenio['DES_ORGAO'].to_list()))
+    selected_orgao = st.selectbox(
+        label='Selecione o orgao:',
+        options=set(df_sit_convenio['DES_ORGAO'].to_list()),
+        key="4")
     df_orgao_filtrado = filter_df(df_sit_convenio,'DES_ORGAO',selected_orgao)
     col_convenio, col_uf = st.columns(2)
     with col_convenio:
-        selected_sit_convenio = st.selectbox('Selecione a situação do convênio:',set(df_orgao_filtrado['SIT_CONVENIO'].to_list()))
+        selected_sit_convenio = st.selectbox(
+            label='Selecione a situação do convênio:',
+            options=set(df_orgao_filtrado['SIT_CONVENIO'].to_list()),
+            key="5")
     df_sit_convenio_filtrado = filter_df(df_sit_convenio,'SIT_CONVENIO',selected_sit_convenio)
     with col_uf:
-        selected_uf = st.selectbox('Selecione a UF:',set(df_sit_convenio_filtrado['UF_PROPONENTE'].to_list()))
+        selected_uf = st.selectbox(
+            label='Selecione a UF:',
+            options=set(df_sit_convenio_filtrado['UF_PROPONENTE'].to_list()),
+            key="6")
     df_sit_convenio_filtrado2 = filter_df(df_sit_convenio_filtrado,'UF_PROPONENTE',selected_uf)
     st.write(df_sit_convenio_filtrado2[['MUNIC_PROPONENTE','OBJETO_PROPOSTA','valorGlobal']])
 
