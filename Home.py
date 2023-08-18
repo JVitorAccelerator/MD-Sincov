@@ -4,7 +4,6 @@ import streamlit as st
 import pandas as pd
 import plotly_express as px
 import plotly.figure_factory as ff
-from Utils.util_func import generate_random_key
 
 def main():
     with st.container():
