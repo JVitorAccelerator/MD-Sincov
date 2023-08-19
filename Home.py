@@ -80,9 +80,9 @@ def Analise_1(df_data,df_fato,df_propostas,df_localizacao,df_convenio):
     def formato_real(valor):
         return f'R${valor:.2f}'.replace('.', ',')
     
-    def formato_valor(soma_valor_total):
-        numero_formatado = locale.currency(soma_valor_total, grouping=True, symbol='R$')
-        return numero_formatado
+    def formato_valor(res: int) -> str:
+        locale.setlocale(locale.LC_ALL, "pt_BR.UTF-8")
+        return locale.currency(res, grouping=True)
         
     df_dataYear = df_data[["keyData","data_id","mes_texto","ano_texto"]].copy() # copiando algumas colunas do dataframe para um novo
     df_dataYear = df_dataYear.rename(columns={'keyData': 'datakey'}) # Renomeando nome de coluna para conseguir fazer o merge
@@ -178,13 +178,18 @@ def Analise_1(df_data,df_fato,df_propostas,df_localizacao,df_convenio):
         select_orgao = st.selectbox('Ministério:',set(df_ministerio_por_ano_copy['DES_ORGAO'].to_list()))
         df_ministerio_por_ano_copy = filter_df(df_ministerio_por_ano_copy,'DES_ORGAO',select_orgao)
     with coluna2:
-        selecao_estado = st.selectbox('Selecione a UF:',set(df_ministerio_por_ano_copy['UF_PROPONENTE'].to_list()))
+        selecao_estado = st.selectbox('Selecione a UF:',set(df_ministerio_por_ano_copy['UF_PROPONENTE'].to_list()),key=25)
         df_ministerio_por_ano = filter_df(df_ministerio_por_ano_copy,'UF_PROPONENTE',selecao_estado)
     df1_filtro = pd.DataFrame(df_ministerio_por_ano.groupby(by=['ano_texto'])['valorGlobal'].sum())
     df1_filtro.reset_index(inplace=True)
 
-    fig_year = px.bar(df1_filtro, x='ano_texto', y='valorGlobal', labels={'ano_texto': 'Ano','valorGlobal': 'Total'})
+    fig_year = px.bar(df1_filtro, x='ano_texto', y='valorGlobal', labels={'ano_texto': 'Ano','valorGlobal': 'Total'}, title='Valor contratado (Global)')
     st.write(fig_year)
+
+    df1_filtro1 = pd.DataFrame(df_ministerio_por_ano.groupby(by=['ano_texto','UF_PROPONENTE'])['Contrapartida'].sum())
+    df1_filtro1.reset_index(inplace=True)
+    fig_contrapartida = px.bar(df1_filtro1, x='ano_texto', y='Contrapartida',color='UF_PROPONENTE', labels={'ano_texto': 'Ano'},title='Valor de contrapartida')
+    st.write(fig_contrapartida)
 
     fig_pie = px.pie(df_ministerio_por_ano, values='qtdSitConvenio', names='SIT_CONVENIO', color='ano_texto',title='Situação de prestação de contas do Convênio por Ministério e Estado',hole=.3,labels={'qtdSitConvenio':'Quantidade','SIT_CONVENIO':'Situação do convênio','ano_texto':'Ano'})
     st.write(fig_pie)
@@ -194,29 +199,31 @@ def Analise_1(df_data,df_fato,df_propostas,df_localizacao,df_convenio):
         st.write('⚠️ Selecione um orgão acima ⚠️')
     else:
         df_ministerio_por_ano_filtro = df_ministerio_por_ano.copy()
-        st.markdown(f"##### Análise de investimentos nos municípios do(a) {selecao_estado}")
-        colun1, colun2 = st.columns([1,3])
-        with colun1:
-            selecao_ano = st.selectbox('Selecione o Ano:',set(df_ministerio_por_ano_filtro['ano_texto'].to_list()))
-            df_ministerio_por_ano_filtro = filter_df(df_ministerio_por_ano_filtro,'ano_texto',selecao_ano)
-            nome_uf = df_ministerio_por_ano_filtro['UF_PROPONENTE'].iloc[0]
-            valor_total = df_ministerio_por_ano_filtro['valorGlobal'].sum()
-            colun1.metric(label="Valor contratado (Global)", value=formato_valor(valor_total))
-            colun1.progress(100)
-            colun1.metric(label="Valor liberado (Repasse)", value=formato_valor(df_ministerio_por_ano_filtro['Repasse'].sum()))
-            colun1.progress(100)
-            colun1.metric(label="Saldo em conta", value=formato_valor(df_ministerio_por_ano_filtro['SaldoReman'].sum()))
-            colun1.progress(100)
+        st.markdown(f"##### Análise de investimentos nos municípios - {selecao_estado}")
+        selecao_ano = st.selectbox('Selecione o Ano:',set(df_ministerio_por_ano_filtro['ano_texto'].to_list()))
+        df_ministerio_por_ano_filtro = filter_df(df_ministerio_por_ano_filtro,'ano_texto',selecao_ano)
+        colun2,colun3,colun4 = st.columns(3)
+        nome_uf = df_ministerio_por_ano_filtro['UF_PROPONENTE'].iloc[0]
+        valor_total = df_ministerio_por_ano_filtro['valorGlobal'].sum()
+        colun2.metric(label="Valor contratado (Global)", value=formato_valor(valor_total))
+        colun2.progress(100)
+        colun3.metric(label="Valor liberado (Repasse)", value=formato_valor(df_ministerio_por_ano_filtro['Repasse'].sum()))
+        colun3.progress(100)
+        colun4.metric(label="Saldo em conta", value=formato_valor(df_ministerio_por_ano_filtro['SaldoReman'].sum()))
+        colun4.progress(100)
         df_teste_filtro = pd.DataFrame(df_ministerio_por_ano_filtro.groupby(by=['ano_texto','MUNIC_PROPONENTE','count'])['valorGlobal'].sum()) # Agrupando informações da tabela de ano e com a soma do valor global
         df_teste_filtro.reset_index(inplace=True)
-        with colun2:
-            figura = px.bar(df_teste_filtro, x='MUNIC_PROPONENTE', y='valorGlobal',labels={'MUNIC_PROPONENTE': 'Municipio','valorGlobal': 'Total'})
-            st.write(figura)
+
+        df_teste_filtro1 = pd.DataFrame(df_ministerio_por_ano_filtro.groupby(by=['ano_texto','MUNIC_PROPONENTE','count'])['Contrapartida'].sum()) # Agrupando informações da tabela de ano e com a soma do valor global
+        df_teste_filtro1.reset_index(inplace=True)        
+        figura = px.bar(df_teste_filtro, x='MUNIC_PROPONENTE', y='valorGlobal',labels={'MUNIC_PROPONENTE': 'Municipio','valorGlobal': 'Total'},title='Valor contratado (Global)')
+        st.write(figura)
+
+        fig_contrapartida_mun = px.bar(df_teste_filtro1, x='MUNIC_PROPONENTE', y='Contrapartida',color='ano_texto', labels={'ano_texto': 'Ano','MUNIC_PROPONENTE':'Municipio'},title='Valor de contrapartida')
+        st.write(fig_contrapartida_mun)
 
 with open ('./css/style.css') as f:
     st.markdown(f'<style>{f.read()}</style>', unsafe_allow_html=True)
-
-locale.setlocale(locale.LC_ALL, 'pt_BR.UTF-8')
 
 df_convenio = dataframe.Dados.dimconvenio
 df_data = dataframe.Dados.dimdata
