@@ -25,12 +25,12 @@ def main():
 
 
             '<ul>' \
-            '<li class="content-size">As propostas gastaram mais ou menos na execução dos convênios?</li><br>'\
-            '<li class="content-size">Existe alguma relação entre o tamanho do repasse das propostas e o valor gasto na execução dos convênios?</li><br>'\
-            '<li class="content-size"> Quais são os principais tipos de projetos que receberam convênios e como eles se comparam em termos de repasses e gastos?</li><br>'\
-            '<li class="content-size"> "Qual é a tendência ao longo do tempo em relação ao valor médio de repasse e gastos em convênios?</li><br>'\
+            '<li class="content-size">Identificar quais os objetos adquiridos por município de um ministério e total investido ?</li><br>'\
+            '<li class="content-size">Qual a situação de cada prestação de contas do convênio por ministério e estado?</li><br>'\
+            '<li class="content-size">Qual o valor contratado x valor de repasse x o valor em conta de um município ?</li><br>'\
+            '<li class="content-size">Quais os objetos comprados por ministério, filtrando por situação de convênio e pelo Estado?</li><br>'\
+            '<li class="content-size">Qual o valor contratado investido nas naturezas jurídicas por ano?</li><br>'\
             '</ul>'
-
 
 
             """
@@ -79,6 +79,10 @@ def Analise_1(df_data,df_fato,df_propostas,df_localizacao,df_convenio):
     
     def formato_real(valor):
         return f'R${valor:.2f}'.replace('.', ',')
+    
+    def formato_valor(soma_valor_total):
+        numero_formatado = locale.currency(soma_valor_total, grouping=True, symbol='R$')
+        return numero_formatado
         
     df_dataYear = df_data[["keyData","data_id","mes_texto","ano_texto"]].copy() # copiando algumas colunas do dataframe para um novo
     df_dataYear = df_dataYear.rename(columns={'keyData': 'datakey'}) # Renomeando nome de coluna para conseguir fazer o merge
@@ -86,7 +90,7 @@ def Analise_1(df_data,df_fato,df_propostas,df_localizacao,df_convenio):
     #st.write(df_fato.shape) # Tamanho de linhas e colunas
     result = pd.merge(df_dataYear, df_fato, how="inner", on=['datakey']) # Juntando tabelas com base na chave datakey
 
-    df_proposta_filter = df_propostas[['key','DES_ORGAO','SIT_PROPOSTA','OBJETO_PROPOSTA']]
+    df_proposta_filter = df_propostas[['key','DES_ORGAO','NATUREZA_JURIDICA','SIT_PROPOSTA','OBJETO_PROPOSTA']]
     df_proposta_filter = df_proposta_filter.rename(columns={'key': 'propostakey'})
     result = pd.merge(df_proposta_filter, result, how="inner", on=['propostakey'])
 
@@ -98,63 +102,46 @@ def Analise_1(df_data,df_fato,df_propostas,df_localizacao,df_convenio):
     convenio_filter = convenio_filter.rename(columns={'key': 'conveniokey'})
     result = pd.merge(convenio_filter, result, how="inner", on=['conveniokey'])
 
-    result['count'] = result.groupby(['ano_texto','DES_ORGAO'])['OBJETO_PROPOSTA'].transform('count')
+    result['count'] = result.groupby(['ano_texto'])['OBJETO_PROPOSTA'].transform('count')
     df1 = pd.DataFrame(result.groupby(by=['ano_texto','DES_ORGAO','count'])['valorGlobal'].sum()) # Agrupando informações da tabela de ano e com a soma do valor global
     df1.reset_index(inplace=True) # Removendo index para a coluna ano aparecer
+    
+    st.subheader(f"Total de investido por natureza jurídica:")
 
     lista_ano = set(df1['ano_texto'].map(int).to_list())
-    with st.expander('Filtros'):
-        selecao_year = st.slider(
-            label='Ano: ',
-            min_value=min(lista_ano),
-            max_value=max(lista_ano),
-            key="0")
-        filtro = filter_df(df1,'ano_texto',str(selecao_year))
-        multiselect_orgao = st.multiselect(
-            label='Orgão:',
-            options=filtro['DES_ORGAO'].to_list(),
-            default=['MINISTERIO DA DEFESA'],
-            key="1")
-        filtro = filtro[filtro["DES_ORGAO"].isin(multiselect_orgao)]
-    lista_orgao_filtrada = filtro['DES_ORGAO'].to_list()
-    lista_qtd_propostas = filtro['count'].to_list()
-    st.subheader(f"Quantidade de prpostas no ano de {selecao_year} ?")
-    # Definir quantas colunas por grupo você quer
-    colunas_por_grupo = 3
-    # Calcular o número total de grupos
-    num_grupos = (len(lista_orgao_filtrada) + colunas_por_grupo - 1) // colunas_por_grupo
-    # Criar os grupos de colunas e simular a quebra de linha
-    cont = 0
-    for grupo_num in range(num_grupos):
-        inicio = grupo_num * colunas_por_grupo
-        fim = min((grupo_num + 1) * colunas_por_grupo, len(lista_orgao_filtrada))
-        grupo_orgaos = lista_orgao_filtrada[inicio:fim]
-        # Criar um grupo de colunas para este conjunto de órgãos
-        with st.container():
-            cols = st.columns(len(grupo_orgaos))
-            for index, orgao in enumerate(grupo_orgaos):
-                col = cols[index]
-                col.metric(orgao, lista_qtd_propostas[cont])
-                col.progress(100)
-                cont+=1
-
-    df_comLocalizacao = pd.DataFrame(result.groupby(by=['ano_texto','DES_ORGAO','UF_PROPONENTE'])['valorGlobal'].sum())
+    selecao_year = st.slider(
+        label='Ano: ',
+        min_value=min(lista_ano),
+        max_value=max(lista_ano),
+        key="0")
+    
+    df_comLocalizacao = pd.DataFrame(result.groupby(by=['ano_texto','DES_ORGAO','UF_PROPONENTE','NATUREZA_JURIDICA','count','Repasse','SaldoReman'])['valorGlobal'].sum())
     df_comLocalizacao.reset_index(inplace=True) 
     df_comLocalizacao = df_comLocalizacao[df_comLocalizacao['ano_texto'] == str(selecao_year)]
-    df_comLocalizacao = df_comLocalizacao[df_comLocalizacao['DES_ORGAO'].isin(multiselect_orgao)]
-    df_localizacaoGroupby = pd.DataFrame(df_comLocalizacao.groupby(by=['UF_PROPONENTE'])['valorGlobal'].sum())
+    df_localizacaoGroupby = pd.DataFrame(df_comLocalizacao.groupby(by=['NATUREZA_JURIDICA'])['valorGlobal'].sum())
     df_localizacaoGroupby.reset_index(inplace=True) 
 
-    st.subheader(f"Total investido por estado em {selecao_year}:")
+    cols1,cols2,cols3,cols4 = st.columns(4)
+    cols1.metric("Quantidade de propostas", df_comLocalizacao['count'].sum())
+    cols1.progress(100)
+
+    cols2.metric("Valor contratado (Global)", formato_valor(df_comLocalizacao['valorGlobal'].sum()))
+    cols2.progress(100)
+
+    cols3.metric("Valor liberado (Repasse)", formato_valor(df_comLocalizacao['Repasse'].sum()))
+    cols3.progress(100)
+
+    cols4.metric("Saldo em conta", formato_valor(df_comLocalizacao['SaldoReman'].sum()))
+    cols4.progress(100)
 
     fig_estados = px.bar(df_localizacaoGroupby, 
-                x='UF_PROPONENTE', 
+                x='NATUREZA_JURIDICA', 
                 y='valorGlobal', 
                 labels={
-                        'UF_PROPONENTE': 'Estado',
+                        'NATUREZA_JURIDICA': 'Natureza jurídica',
                         'valorGlobal': 'Total'
                     },
-                title=f"Total de investido por orgão em {selecao_year}:",
+                title=f"Análise de investimento contratado pela natureza jurídica no ano de {selecao_year}:",
                 text='valorGlobal')
     #configura os textos para ficarem na parte de dentro das barras
     fig_estados.update_traces(textposition='inside',texttemplate='%{text:.2s}')
@@ -162,12 +149,12 @@ def Analise_1(df_data,df_fato,df_propostas,df_localizacao,df_convenio):
     fig_estados.update_yaxes(showticklabels=False)
     st.write(fig_estados)
 
-    st.subheader("Análise de objetos comprados pelos Orgãos")
+    st.subheader("Análise de objetos comprados pelos Ministérios")
     df_sit_convenio = pd.DataFrame(result.groupby(by=['ano_texto','DES_ORGAO','UF_PROPONENTE','MUNIC_PROPONENTE','OBJETO_PROPOSTA','SIT_CONVENIO'])['valorGlobal'].sum())
     df_sit_convenio.reset_index(inplace=True)
     df_sit_convenio = df_sit_convenio[df_sit_convenio['ano_texto'] == str(selecao_year)]
     st.markdown("##### Nesta análise estamos usando a situação do convênio e o Estado")
-    selected_orgao = st.selectbox('Selecione o orgao:',set(df_sit_convenio['DES_ORGAO'].to_list()))
+    selected_orgao = st.selectbox('Selecione o ministério:',set(df_sit_convenio['DES_ORGAO'].to_list()))
     df_orgao_filtrado = filter_df(df_sit_convenio,'DES_ORGAO',selected_orgao)
     col_convenio, col_uf = st.columns(2)
     with col_convenio:
@@ -182,14 +169,14 @@ def Analise_1(df_data,df_fato,df_propostas,df_localizacao,df_convenio):
                      ])
     st.write(table)
     
-
-    st.title('Analises Subplots')
-    st.markdown("### Análise por ministério ao passar dos anos")
+    st.subheader('Analises por ministérios')
+    st.markdown("##### Análise por valor contratado de ministérios por estado e município")
     df_ministerio_por_ano_copy = result.copy()
+    df_ministerio_por_ano_copy['qtdSitConvenio'] = df_ministerio_por_ano_copy.groupby(['ano_texto','DES_ORGAO','UF_PROPONENTE'])['SIT_CONVENIO'].transform('count')
     coluna1, coluna2 = st.columns([3,1])
     with coluna1:
-        multiselect_orgao = st.multiselect('Orgão:',set(df_ministerio_por_ano_copy['DES_ORGAO'].to_list()),['MINISTERIO DA DEFESA'])
-        df_ministerio_por_ano_copy = df_ministerio_por_ano_copy[df_ministerio_por_ano_copy["DES_ORGAO"].isin(multiselect_orgao)]
+        select_orgao = st.selectbox('Ministério:',set(df_ministerio_por_ano_copy['DES_ORGAO'].to_list()))
+        df_ministerio_por_ano_copy = filter_df(df_ministerio_por_ano_copy,'DES_ORGAO',select_orgao)
     with coluna2:
         selecao_estado = st.selectbox('Selecione a UF:',set(df_ministerio_por_ano_copy['UF_PROPONENTE'].to_list()))
         df_ministerio_por_ano = filter_df(df_ministerio_por_ano_copy,'UF_PROPONENTE',selecao_estado)
@@ -199,21 +186,27 @@ def Analise_1(df_data,df_fato,df_propostas,df_localizacao,df_convenio):
     fig_year = px.bar(df1_filtro, x='ano_texto', y='valorGlobal', labels={'ano_texto': 'Ano','valorGlobal': 'Total'})
     st.write(fig_year)
 
-    if multiselect_orgao == []:
+    fig_pie = px.pie(df_ministerio_por_ano, values='qtdSitConvenio', names='SIT_CONVENIO', color='ano_texto',title='Situação de prestação de contas do Convênio por Ministério e Estado',hole=.3,labels={'qtdSitConvenio':'Quantidade','SIT_CONVENIO':'Situação do convênio','ano_texto':'Ano'})
+    st.write(fig_pie)
+
+
+    if select_orgao == None:
         st.write('⚠️ Selecione um orgão acima ⚠️')
     else:
-        st.markdown("### Análise de investimentos nos municípios por estado ")
         df_ministerio_por_ano_filtro = df_ministerio_por_ano.copy()
+        st.markdown(f"##### Análise de investimentos nos municípios do(a) {selecao_estado}")
         colun1, colun2 = st.columns([1,3])
         with colun1:
             selecao_ano = st.selectbox('Selecione o Ano:',set(df_ministerio_por_ano_filtro['ano_texto'].to_list()))
             df_ministerio_por_ano_filtro = filter_df(df_ministerio_por_ano_filtro,'ano_texto',selecao_ano)
             nome_uf = df_ministerio_por_ano_filtro['UF_PROPONENTE'].iloc[0]
-            soma_valor_total = df_ministerio_por_ano_filtro['valorGlobal'].sum()
-            numero_formatado = locale.currency(soma_valor_total, grouping=True, symbol='R$')
-            colun1.metric(label=f"Estado de {nome_uf}", value=numero_formatado)
+            valor_total = df_ministerio_por_ano_filtro['valorGlobal'].sum()
+            colun1.metric(label="Valor contratado (Global)", value=formato_valor(valor_total))
             colun1.progress(100)
-
+            colun1.metric(label="Valor liberado (Repasse)", value=formato_valor(df_ministerio_por_ano_filtro['Repasse'].sum()))
+            colun1.progress(100)
+            colun1.metric(label="Saldo em conta", value=formato_valor(df_ministerio_por_ano_filtro['SaldoReman'].sum()))
+            colun1.progress(100)
         df_teste_filtro = pd.DataFrame(df_ministerio_por_ano_filtro.groupby(by=['ano_texto','MUNIC_PROPONENTE','count'])['valorGlobal'].sum()) # Agrupando informações da tabela de ano e com a soma do valor global
         df_teste_filtro.reset_index(inplace=True)
         with colun2:
@@ -240,135 +233,3 @@ show_dataset(selected_dataset)
 
 st.title('📈Analises dos dados siconv')
 Analise_1(df_data,df_fato,df_propostas,df_localizacao,df_convenio)
-
-
-
-def Analise_2(df_data,df_fato,df_propostas,df_localizacao,df_convenio):
-    def filter_df(df, column_name, value):
-        filter_sales_units = df[(df[column_name] == value)]
-        return filter_sales_units
-    
-    df_dataYear = df_data[["keyData","data_id","mes_texto","ano_texto"]].copy() # copiando algumas colunas do dataframe para um novo
-    df_dataYear = df_dataYear.rename(columns={'keyData': 'datakey'}) # Renomeando nome de coluna para conseguir fazer o merge
-    df_fato = df_fato.astype({'valorGlobal':'int'}) # Trocando para tipo int
-    #st.write(df_fato.shape) # Tamanho de linhas e colunas
-    result = pd.merge(df_dataYear, df_fato, how="inner", on=['datakey']) # Juntando tabelas com base na chave datakey
-
-    df_proposta_filter = df_propostas[['key','DES_ORGAO','SIT_PROPOSTA','OBJETO_PROPOSTA']]
-    df_proposta_filter = df_proposta_filter.rename(columns={'key': 'propostakey'})
-    result = pd.merge(df_proposta_filter, result, how="inner", on=['propostakey'])
-
-    localizacao_filter = df_localizacao[['key','UF_PROPONENTE','MUNIC_PROPONENTE','NM_PROPONENTE']]
-    localizacao_filter = localizacao_filter.rename(columns={'key': 'localizacaokey'})
-    result = pd.merge(localizacao_filter, result, how="inner", on=['localizacaokey'])
-
-    convenio_filter = df_convenio[['key','SIT_CONVENIO']]
-    convenio_filter = convenio_filter.rename(columns={'key': 'conveniokey'})
-    result = pd.merge(convenio_filter, result, how="inner", on=['conveniokey'])
-
-    result['count'] = result.groupby(['ano_texto','DES_ORGAO'])['OBJETO_PROPOSTA'].transform('count')
-    df1 = pd.DataFrame(result.groupby(by=['ano_texto','DES_ORGAO','count'])['valorGlobal'].sum()) # Agrupando informações da tabela de ano e com a soma do valor global
-    df1.reset_index(inplace=True) # Removendo index para a coluna ano aparecer
-
-
-    lista_ano = set(df1['ano_texto'].map(int).to_list())
-    
-    with st.expander('Filtros'):
-        selecao_year = st.slider(
-            label='Ano: ',
-            min_value=min(lista_ano),
-            max_value=max(lista_ano),
-            key="2")
-        filtro = filter_df(df1,'ano_texto',str(selecao_year))
-        multiselect_orgao = st.multiselect(
-            label='Orgão:',
-            options=filtro['DES_ORGAO'].to_list(),
-            default=['MINISTERIO DA DEFESA'],
-            key="3")
-        filtro = filtro[filtro["DES_ORGAO"].isin(multiselect_orgao)]
-    lista_orgao_filtrada = filtro['DES_ORGAO'].to_list()
-    lista_qtd_propostas = filtro['count'].to_list()
-    st.subheader(f"Quais as propostas e a quantidade para o ano de {selecao_year} ?")
-    # Definir quantas colunas por grupo você quer
-    colunas_por_grupo = 3
-    # Calcular o número total de grupos
-    num_grupos = (len(lista_orgao_filtrada) + colunas_por_grupo - 1) // colunas_por_grupo
-    # Criar os grupos de colunas e simular a quebra de linha
-    cont = 0
-    for grupo_num in range(num_grupos):
-        inicio = grupo_num * colunas_por_grupo
-        fim = min((grupo_num + 1) * colunas_por_grupo, len(lista_orgao_filtrada))
-        grupo_orgaos = lista_orgao_filtrada[inicio:fim]
-        # Criar um grupo de colunas para este conjunto de órgãos
-        with st.container():
-            cols = st.columns(len(grupo_orgaos))
-            for index, orgao in enumerate(grupo_orgaos):
-                col = cols[index]
-                col.metric(orgao, lista_qtd_propostas[cont])
-                col.progress(100)
-                cont+=1
-
-    df_comLocalizacao = pd.DataFrame(result.groupby(by=['ano_texto','DES_ORGAO','UF_PROPONENTE'])['valorGlobal'].sum())
-    df_comLocalizacao.reset_index(inplace=True) 
-    df_comLocalizacao = df_comLocalizacao[df_comLocalizacao['ano_texto'] == str(selecao_year)]
-    df_comLocalizacao = df_comLocalizacao[df_comLocalizacao['DES_ORGAO'].isin(multiselect_orgao)]
-    df_localizacaoGroupby = pd.DataFrame(df_comLocalizacao.groupby(by=['UF_PROPONENTE'])['valorGlobal'].sum())
-    df_localizacaoGroupby.reset_index(inplace=True) 
-
-
-
-    st.subheader(f"Quais os estados com maiores investimentos em {selecao_year} ?")
-
-    fig_estados = px.bar(df_localizacaoGroupby, 
-                x='UF_PROPONENTE', 
-                y='valorGlobal', 
-                labels={
-                        'UF_PROPONENTE': 'Estado',
-                        'valorGlobal': 'Total'
-                    },
-                title=f"Total de investido por orgão em {selecao_year}",
-                text='valorGlobal')
-    #configura os textos para ficarem na parte de dentro das barras
-    fig_estados.update_traces(textposition='inside',texttemplate='%{text:.2s}')
-    #remove o eixo Y
-    fig_estados.update_yaxes(showticklabels=False)
-    st.write(fig_estados)
-
-
-    #Adiciona filtro de estados, e criar um gráfico com a quantidade de situações dos convênios
-
-
-    st.title("Análise por ministérios")
-    df_sit_convenio = pd.DataFrame(result.groupby(by=['ano_texto','DES_ORGAO','UF_PROPONENTE','MUNIC_PROPONENTE','OBJETO_PROPOSTA','SIT_CONVENIO'])['valorGlobal'].sum())
-    df_sit_convenio.reset_index(inplace=True)
-    df_sit_convenio = df_sit_convenio[df_sit_convenio['ano_texto'] == str(selecao_year)]
-    st.markdown("##### Nesta análise estamos usando a situação do convênio e o Estado")
-    selected_orgao = st.selectbox(
-        label='Selecione o orgao:',
-        options=set(df_sit_convenio['DES_ORGAO'].to_list()),
-        key="4")
-    df_orgao_filtrado = filter_df(df_sit_convenio,'DES_ORGAO',selected_orgao)
-    col_convenio, col_uf = st.columns(2)
-    with col_convenio:
-        selected_sit_convenio = st.selectbox(
-            label='Selecione a situação do convênio:',
-            options=set(df_orgao_filtrado['SIT_CONVENIO'].to_list()),
-            key="5")
-    df_sit_convenio_filtrado = filter_df(df_sit_convenio,'SIT_CONVENIO',selected_sit_convenio)
-    with col_uf:
-        selected_uf = st.selectbox(
-            label='Selecione a UF:',
-            options=set(df_sit_convenio_filtrado['UF_PROPONENTE'].to_list()),
-            key="6")
-    df_sit_convenio_filtrado2 = filter_df(df_sit_convenio_filtrado,'UF_PROPONENTE',selected_uf)
-    st.write(df_sit_convenio_filtrado2[['MUNIC_PROPONENTE','OBJETO_PROPOSTA','valorGlobal']])
-
-#Analise_2(df_data,df_fato,df_propostas,df_localizacao,df_convenio)
-
-
-
-
-
-
-
-
