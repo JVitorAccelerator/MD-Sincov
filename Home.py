@@ -4,7 +4,6 @@ import streamlit as st
 import pandas as pd
 import plotly_express as px
 import plotly.graph_objects as go
-import locale
 import plotly.figure_factory as ff
 import numpy as np
 
@@ -82,9 +81,9 @@ def Analise_1(df_data,df_fato,df_propostas,df_localizacao,df_convenio):
     def formato_real(valor):
         return f'R${valor:.2f}'.replace('.', ',')
     
-    def formato_valor(res: int) -> str:
-        locale.setlocale(locale.LC_ALL, "pt_BR.UTF-8")
-        return locale.currency(res, grouping=True)
+    def formato_valor(res: float) -> str:
+        formato_string = f'R${res:,.2f}'.replace(',', 'X').replace('.', ',').replace('X', '.')
+        return formato_string
         
     df_dataYear = df_data[["keyData","data_id","mes_texto","ano_texto"]].copy() # copiando algumas colunas do dataframe para um novo
     df_dataYear = df_dataYear.rename(columns={'keyData': 'datakey'}) # Renomeando nome de coluna para conseguir fazer o merge
@@ -224,6 +223,12 @@ def Analise_1(df_data,df_fato,df_propostas,df_localizacao,df_convenio):
         fig_contrapartida_mun = px.bar(df_teste_filtro1, x='MUNIC_PROPONENTE', y='Contrapartida',color='ano_texto', labels={'ano_texto': 'Ano','MUNIC_PROPONENTE':'Municipio'},title='Valor de contrapartida')
         st.write(fig_contrapartida_mun)
 
+        #fig = ff.create_distplot(df_teste_filtro['valorGlobal'], df_teste_filtro['MUNIC_PROPONENTE'])
+        fig_teste = px.histogram(df1_filtro, x="valorGlobal")
+        st.write(fig_teste)
+        # Plot!
+        #st.plotly_chart(fig, use_container_width=True)
+
 
 def Analise_2():
 
@@ -264,4 +269,4 @@ show_dataset(selected_dataset)
 
 st.title('📈Analises dos dados siconv')
 Analise_1(df_data,df_fato,df_propostas,df_localizacao,df_convenio)
-Analise_2()
+#Analise_2()
