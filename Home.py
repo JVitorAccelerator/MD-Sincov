@@ -4,8 +4,6 @@ import streamlit as st
 import pandas as pd
 import plotly_express as px
 import plotly.graph_objects as go
-import plotly.figure_factory as ff
-import numpy as np
 
 def main():
     
@@ -107,7 +105,7 @@ def Analise_1(df_data,df_fato,df_propostas,df_localizacao,df_convenio):
     df1 = pd.DataFrame(result.groupby(by=['ano_texto','DES_ORGAO','count'])['valorGlobal'].sum()) # Agrupando informações da tabela de ano e com a soma do valor global
     df1.reset_index(inplace=True) # Removendo index para a coluna ano aparecer
     
-    st.subheader(f"Total de investido por natureza jurídica:")
+    st.subheader(f"Total de investimento por natureza jurídica:")
 
     lista_ano = set(df1['ano_texto'].map(int).to_list())
     selecao_year = st.slider(
@@ -149,13 +147,16 @@ def Analise_1(df_data,df_fato,df_propostas,df_localizacao,df_convenio):
     #remove o eixo Y
     fig_estados.update_yaxes(showticklabels=False)
     st.write(fig_estados)
-
+    
+    st.write('')
     st.subheader("Análise de objetos comprados pelos Ministérios")
     df_sit_convenio = pd.DataFrame(result.groupby(by=['ano_texto','DES_ORGAO','UF_PROPONENTE','MUNIC_PROPONENTE','OBJETO_PROPOSTA','SIT_CONVENIO'])['valorGlobal'].sum())
     df_sit_convenio.reset_index(inplace=True)
     df_sit_convenio = df_sit_convenio[df_sit_convenio['ano_texto'] == str(selecao_year)]
+    st.write('')
     st.markdown("##### Nesta análise estamos usando a situação do convênio e o Estado")
     selected_orgao = st.selectbox('Selecione o ministério:',set(df_sit_convenio['DES_ORGAO'].to_list()))
+    st.write('')
     df_orgao_filtrado = filter_df(df_sit_convenio,'DES_ORGAO',selected_orgao)
     col_convenio, col_uf = st.columns(2)
     with col_convenio:
@@ -171,7 +172,7 @@ def Analise_1(df_data,df_fato,df_propostas,df_localizacao,df_convenio):
     st.write(table)
     
     st.subheader('Analises por ministérios')
-    st.markdown("##### Análise por valor contratado de ministérios por estado e município")
+    st.markdown("##### Análise por valor contratado de ministérios por estado")
     df_ministerio_por_ano_copy = result.copy()
     df_ministerio_por_ano_copy['qtdSitConvenio'] = df_ministerio_por_ano_copy.groupby(['ano_texto','DES_ORGAO','UF_PROPONENTE'])['SIT_CONVENIO'].transform('count')
     coluna1, coluna2 = st.columns([3,1])
@@ -237,7 +238,10 @@ df_fato = dataframe.Dados.fatoexecucao
 
 datasets = ['Convenio', 'Data', 'Emenda', 'Localizacao', 'Parlamentar', 'Propostas', 'Fato']
 st.title('Visualizador de dimensões')
-selected_dataset = st.selectbox('Selecione uma dimensão:', datasets)
+st.write('')
+
+selected_dataset = st.selectbox('Selecione a dimensão que deseja visualizar:', datasets)
+st.write("")
 show_dataset(selected_dataset)
 
 
