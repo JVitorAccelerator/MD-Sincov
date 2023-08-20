@@ -223,32 +223,6 @@ def Analise_1(df_data,df_fato,df_propostas,df_localizacao,df_convenio):
         fig_contrapartida_mun = px.bar(df_teste_filtro1, x='MUNIC_PROPONENTE', y='Contrapartida',color='ano_texto', labels={'ano_texto': 'Ano','MUNIC_PROPONENTE':'Municipio'},title='Valor de contrapartida')
         st.write(fig_contrapartida_mun)
 
-        #fig = ff.create_distplot(df_teste_filtro['valorGlobal'], df_teste_filtro['MUNIC_PROPONENTE'])
-        fig_teste = px.histogram(df1_filtro, x="valorGlobal")
-        st.write(fig_teste)
-        # Plot!
-        #st.plotly_chart(fig, use_container_width=True)
-
-
-def Analise_2():
-
-    # Add histogram data
-    x1 = np.random.randn(200) - 2
-    x2 = np.random.randn(200)
-    x3 = np.random.randn(200) + 2
-
-    # Group data together
-    hist_data = [x1, x2, x3]
-
-    group_labels = ['Group 1', 'Group 2', 'Group 3']
-
-    # Create distplot with custom bin_size
-    fig = ff.create_distplot(
-            hist_data, group_labels, bin_size=[.1, .25, .5])
-
-    # Plot!
-    st.plotly_chart(fig, use_container_width=True)
-
 
 with open ('./css/style.css') as f:
     st.markdown(f'<style>{f.read()}</style>', unsafe_allow_html=True)
@@ -269,4 +243,3 @@ show_dataset(selected_dataset)
 
 st.title('📈Analises dos dados siconv')
 Analise_1(df_data,df_fato,df_propostas,df_localizacao,df_convenio)
-#Analise_2()
