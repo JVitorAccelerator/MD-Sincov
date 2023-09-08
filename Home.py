@@ -3,6 +3,8 @@ import streamlit as st
 import pandas as pd
 import plotly_express as px
 import plotly.graph_objects as go
+import seaborn as sns
+import matplotlib.pyplot as plt
 
 def main():
     
@@ -62,12 +64,10 @@ def page2():
         def filter_df(df, column_name, value):
             filter_sales_units = df[(df[column_name] == value)]
             return filter_sales_units
-
-        df_dataYear = df_data[["keyData","data_id","mes_texto","ano_texto"]].copy() # copiando algumas colunas do dataframe para um novo
-        df_dataYear = df_dataYear.rename(columns={'keyData': 'datakey'}) # Renomeando nome de coluna para conseguir fazer o merge
-        df_fato = df_fato.astype({'valorGlobal':'int'}) # Trocando para tipo int
-        #st.write(df_fato.shape) # Tamanho de linhas e colunas
-        result = pd.merge(df_dataYear, df_fato, how="inner", on=['datakey']) # Juntando tabelas com base na chave datakey
+        # Carregando dataframes com merge na chave
+        df_dataYear = df_data[["keyData","data_id","mes_texto","ano_texto","mes_numeronoano"]].copy()
+        df_dataYear = df_dataYear.rename(columns={'keyData': 'datakey'})
+        result = pd.merge(df_dataYear, df_fato, how="inner", on=['datakey']) 
 
         df_proposta_filter = df_propostas[['key','DES_ORGAO','NATUREZA_JURIDICA','SIT_PROPOSTA','OBJETO_PROPOSTA']]
         df_proposta_filter = df_proposta_filter.rename(columns={'key': 'propostakey'})
@@ -81,33 +81,68 @@ def page2():
         convenio_filter = convenio_filter.rename(columns={'key': 'conveniokey'})
         result = pd.merge(convenio_filter, result, how="inner", on=['conveniokey'])
 
-        '''
-        Filtro estado, filtro por ano, filtro de situação de convênio, filtro de ministério
-        '''
-
-        #multiselect_objecto = st.multiselect('Objeto:',set(result['OBJETO_PROPOSTA'].to_list()),'Aquisição de Patrulha Mecanizada .')
-        #filtro = result[result["OBJETO_PROPOSTA"].isin(multiselect_objecto)]
+        # ----------- Filtros -------------
         multiselect_orgao = st.multiselect('Orgão:',set(result['DES_ORGAO'].to_list()),"MINISTERIO DA DEFESA")
         filtro = result[result["DES_ORGAO"].isin(multiselect_orgao)]
-        multiselect_estado = st.multiselect('Estado:',set(filtro['UF_PROPONENTE'].to_list()),set(filtro['UF_PROPONENTE'].to_list()))
+        multiselect_estado = st.multiselect('Estado:',set(filtro['UF_PROPONENTE'].to_list()),'RO')
         filtro = filtro[filtro["UF_PROPONENTE"].isin(multiselect_estado)]
         situacao_conv = st.radio("Selecione a situação do convênio:", set(filtro['SIT_CONVENIO'].to_list()))
         df_filtrado = filter_df(filtro, 'SIT_CONVENIO',situacao_conv)
-        df_filtrado['soma'] = df_filtrado.groupby(['MUNIC_PROPONENTE','ano_texto'])['valorGlobal'].transform('sum').copy()
-
-        '''lista_ano = set(df_filtrado['ano_texto'].map(int).to_list())
-        df_filtrado = st.slider(
+        lista_ano = set(df_filtrado['ano_texto'].map(int).to_list())
+        ano = st.slider(
             label='Ano: ',
             min_value=min(lista_ano),
             max_value=max(lista_ano),
-            key="0")'''
+            value=2014,
+            key="0")
+        df_filtrado = filter_df(df_filtrado, 'ano_texto',str(ano))
 
-        
-        st.write(df_filtrado)
-        fig = px.line(df_filtrado, x="mes_texto", y="valorGlobal", color="MUNIC_PROPONENTE", text="mes_texto")
-        fig.update_traces(textposition="bottom right")
-        st.write(fig)
+        # --------- Groupby nos dataframe ------------ 
+        df_filtrado['mes_numeronoano'] = df_filtrado['mes_numeronoano'].astype(int)
+        novo_df_ano = pd.DataFrame(df_filtrado.groupby(by=['mes_texto','mes_numeronoano','ano_texto'])['valorGlobal'].sum())
+        novo_df_ano.reset_index(inplace=True)   
+        selecao_mes_grafico_1 = novo_df_ano.groupby('mes_numeronoano').agg({'valorGlobal':'sum', 'mes_texto':'first'})
 
+        novo_df2_municipio = pd.DataFrame(df_filtrado.groupby(by=['mes_texto','MUNIC_PROPONENTE','mes_numeronoano'])['valorGlobal'].sum())
+        novo_df2_municipio.reset_index(inplace=True)          
+        selecao_mes = novo_df2_municipio.groupby(['mes_numeronoano','MUNIC_PROPONENTE']).agg({'valorGlobal':'sum', 'mes_texto':'first'})
+        selecao_mes.reset_index(inplace=True)
+
+        # --------- Gráficos ---------
+        grafico_linha = px.line(selecao_mes_grafico_1, x="mes_texto", y="valorGlobal", text='valorGlobal', labels={'mes_texto':'Mês','valorGlobal':'Valor Total'}, title="Total investido por Estado no mês")
+        grafico_linha.update_traces(textposition="bottom right")
+        st.plotly_chart(grafico_linha)
+
+        array_trace = []
+        cores = ['black','blue','brown','chocolate','coral','gold','gray','green','indigo','ivory','khaki','lavender']
+        cont = 0
+        for mes in set(selecao_mes['mes_texto'].to_list()):
+            select_fato = novo_df2_municipio[['mes_numeronoano','MUNIC_PROPONENTE','mes_texto', 'valorGlobal']].sort_values('mes_numeronoano')
+            select_fato = select_fato[select_fato['mes_texto'].str.contains(mes)]
+            select_fato.groupby(['mes_numeronoano','MUNIC_PROPONENTE']).agg({'valorGlobal':'sum', 'mes_texto':'first'})
+            trace = go.Scatter(
+            x=select_fato['MUNIC_PROPONENTE'],
+            y=select_fato['valorGlobal'],
+            name=mes,
+            line=dict(color=cores[cont]))
+            array_trace.append(trace)
+            cont += 1
+        grafico_linha_municipios = go.Figure(data=array_trace)
+        grafico_linha_municipios.update_layout(
+            yaxis_title="Valor Total",
+            xaxis_title="Meses",
+            title="Valor médio recebido pelos municípios") 
+        st.plotly_chart(grafico_linha_municipios)
+        st.write(df_filtrado['OBJETO_PROPOSTA'])
+        fig = go.Figure(go.Bar(
+            x=df_filtrado['valorGlobal'],
+            y=df_filtrado['OBJETO_PROPOSTA'],
+            orientation='h'))
+        st.plotly_chart(fig)
+
+        fig = plt.figure(figsize=(10, 4))
+        sns.barplot(data=df_filtrado, x="OBJETO_PROPOSTA", y="valorGlobal")
+        st.plotly_chart(fig)
 
 
     df_convenio = dataframe.Dados.dimconvenio
