@@ -15,7 +15,7 @@ def main():
         "Pergunta 1": page2,
         "Pergunta 2":page3,
         "pergunta 3": page4,
-        "pergunta 4": None,
+        "pergunta 4": page5,
         "Tela antiga": tela_antiga,
     }
 
@@ -142,6 +142,7 @@ def page2():
     df_fato = dataframe.Dados.fatoexecucao    
 
     st.markdown('### Pergunta 1: Quais foram os objetos comprados com propostas aprovadas pelos ministérios e qual foi o valor gasto em cada um deles?')
+    st.divider()
     Analise_1(df_data,df_fato,df_propostas,df_localizacao,df_convenio)
 
 def page3(): #Análise referente a pergunta 2: # Existe uma variação nos valores investidos em cada prestação de contas de convênios entre diferentes ministérios e estados?
@@ -151,6 +152,7 @@ def page3(): #Análise referente a pergunta 2: # Existe uma variação nos valor
         return filter_sales_units
 
     st.markdown('### Pergunta 2: Existe uma variação nos valores investidos em cada prestação de contas de convênios entre diferentes ministérios e estados?')
+    st.divider()
 
     df_convenio = dataframe.Dados.dimconvenio
     df_data = dataframe.Dados.dimdata
@@ -254,7 +256,7 @@ def page4():
         sort_group_menor = grouped_uf.sort_values(by='valorGlobal', ascending=False).head(10)
         grouped_municipio = df_filtrado.groupby(['MUNIC_PROPONENTE'])['valorGlobal'].sum().reset_index()
         sort_group_municipio = grouped_municipio.sort_values(by='valorGlobal', ascending=False).head(10)
-
+        
         plt.figure(figsize=(15, 7))
         ax = sns.barplot(data=sort_group_maior, x="DES_ORGAO", y="valorGlobal", color="green")
         #ax.bar_label(ax.containers[0])
@@ -283,7 +285,12 @@ def page4():
     df_fato = dataframe.Dados.fatoexecucao    
 
     st.markdown('### Quais são os 10 principais ministérios com base no valor total?')
+    st.divider()
     Analise_1(df_data,df_fato,df_propostas,df_localizacao,df_convenio)
+
+def page5():
+    st.markdown('### Quais são as 10 emendas parlamentares com maior valor investido, mostrando em qual estado e município esse valor foi investido e quanto recebeu?')
+    st.divider()
 
 def tela_antiga():
     def show_dataset(dataset):
