@@ -11,7 +11,7 @@ def main():
     st.sidebar.title(" Grupo 9 - Sincov")
 
     pages = {
-        "Introdução": page1, #page1
+        "Introdução": page2, #page1
         "Analise 1": page2,
         "Analise 2":page3,
         "Tela antiga": tela_antiga,
@@ -87,7 +87,9 @@ def page2():
         filtro = result[result["DES_ORGAO"].isin(multiselect_orgao)]
         multiselect_estado = st.multiselect('Estado:',set(filtro['UF_PROPONENTE'].to_list()),'RO')
         filtro = filtro[filtro["UF_PROPONENTE"].isin(multiselect_estado)]
-        situacao_conv = st.radio("Selecione a situação do convênio:", set(filtro['SIT_CONVENIO'].to_list()),index=3)
+        lista_convenio = (filtro['SIT_CONVENIO'].unique()).tolist()
+        index_conv = lista_convenio.index('Prestação de Contas Concluída')
+        situacao_conv = st.radio("Selecione a situação do convênio:", lista_convenio,index=index_conv)
         df_filtrado = filter_df(filtro, 'SIT_CONVENIO',situacao_conv)
         lista_ano = set(df_filtrado['ano_texto'].map(int).to_list())
         ano = st.slider(
@@ -114,8 +116,10 @@ def page2():
         selected_mes = st.selectbox('Selecione o mês:',group_mes['mes_texto'].to_list(),index=1)
         df_filtrado_mes = filter_df(df_filtrado,'mes_texto',selected_mes)
         df_filtrado_mes['count'] = df_filtrado_mes.groupby(['OBJETO_PROPOSTA'])['MUNIC_PROPONENTE'].transform('count')
-        df_filtrado_mun = df_filtrado_mes.groupby('MUNIC_PROPONENTE')['OBJETO_PROPOSTA'].count().reset_index()
-        df_filtrado_sum = df_filtrado_mes.groupby('MUNIC_PROPONENTE')['valorGlobal'].sum().reset_index()
+        #df_filtrado_mes['valorGlobal_municipio'] = df_filtrado_mes.groupby(['MUNIC_PROPONENTE'])['valorGlobal'].transform('sum')
+        df_filtrado_mun_sum = df_filtrado_mes.groupby(['MUNIC_PROPONENTE']).agg({'valorGlobal':'sum', 'OBJETO_PROPOSTA':'count'}).reset_index()
+        #df_filtrado_mun = df_filtrado_mes.groupby('MUNIC_PROPONENTE')['OBJETO_PROPOSTA'].count().reset_index()
+        #df_filtrado_sum = df_filtrado_mes.groupby('MUNIC_PROPONENTE')['valorGlobal'].sum().reset_index()
 
         plt.figure(figsize=(15, 7))
         ax = sns.barplot(data=df_filtrado_mes, x="OBJETO_PROPOSTA", y="count", color="green")
@@ -125,13 +129,13 @@ def page2():
         plt.ylabel(f"Quantidade Total de Adquirida")
         st.pyplot(plt)
 
-        grafico_linha = px.line(df_filtrado_mun, x="MUNIC_PROPONENTE", y="OBJETO_PROPOSTA", text='OBJETO_PROPOSTA', labels={'MUNIC_PROPONENTE':'Município','OBJETO_PROPOSTA':'Quantidade de Objeto'}, title="Quantidade de Objetos por Município")
+        grafico_linha = px.line(df_filtrado_mun_sum, x="MUNIC_PROPONENTE", y="valorGlobal", color="OBJETO_PROPOSTA", text='valorGlobal', labels={'MUNIC_PROPONENTE':'Município','OBJETO_PROPOSTA':'Quantidade de Objeto'}, title="Quantidade de Objetos por município e valor total gasto")
         grafico_linha.update_traces(textposition="bottom right")
         st.plotly_chart(grafico_linha)
 
-        grafico_linha2 = px.line(df_filtrado_sum, x="MUNIC_PROPONENTE", y="valorGlobal", text='valorGlobal', labels={'MUNIC_PROPONENTE':'Município','valorGlobal':'Valor total'}, title="Valor total investido para adquirir os Objetos por Município")
-        grafico_linha2.update_traces(textposition="bottom right")
-        st.plotly_chart(grafico_linha2)
+        #grafico_linha2 = px.line(df_filtrado_sum, x="MUNIC_PROPONENTE", y="valorGlobal", text='valorGlobal', labels={'MUNIC_PROPONENTE':'Município','valorGlobal':'Valor total'}, title="Valor total investido para adquirir os Objetos por Município")
+        #grafico_linha2.update_traces(textposition="bottom right")
+        #st.plotly_chart(grafico_linha2)
 
     df_convenio = dataframe.Dados.dimconvenio
     df_data = dataframe.Dados.dimdata
