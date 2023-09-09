@@ -342,6 +342,14 @@ def tela_antiga():
     Analise_1(df_data,df_fato,df_propostas,df_localizacao,df_convenio)
 
 def page3(): #Análise referente a pergunta 2: # Existe uma variação nos valores investidos em cada prestação de contas de convênios entre diferentes ministérios e estados?
+    df_convenio = dataframe.Dados.dimconvenio
+    df_data = dataframe.Dados.dimdata
+    df_emenda = dataframe.Dados.dimemenda
+    df_localizacao = dataframe.Dados.dimlocalizacao
+    df_parlamentar = dataframe.Dados.dimparlamentar
+    df_propostas = dataframe.Dados.dimproposta
+    df_fato = dataframe.Dados.fatoexecucao 
+
     def filter_df(df, column_name, value):
             filter_sales_units = df[(df[column_name] == value)]
             return filter_sales_units
@@ -352,11 +360,64 @@ def page3(): #Análise referente a pergunta 2: # Existe uma variação nos valor
     def formato_valor(res: float) -> str:
         formato_string = f'R${res:,.2f}'.replace(',', 'X').replace('.', ',').replace('X', '.')
         return formato_string
+    
 
+    df_dataYear = df_data[["keyData","data_id","mes_texto","ano_texto","mes_numeronoano"]].copy()
+    df_dataYear = df_dataYear.rename(columns={'keyData': 'datakey'})
+    result = pd.merge(df_dataYear, df_fato, how="inner", on=['datakey']) 
+
+    df_proposta_filter = df_propostas[['key','DES_ORGAO','NATUREZA_JURIDICA','SIT_PROPOSTA','OBJETO_PROPOSTA']]
+    df_proposta_filter = df_proposta_filter.rename(columns={'key': 'propostakey'})
+    result = pd.merge(df_proposta_filter, result, how="inner", on=['propostakey'])
+
+    localizacao_filter = df_localizacao[['key','UF_PROPONENTE','MUNIC_PROPONENTE','NM_PROPONENTE']]
+    localizacao_filter = localizacao_filter.rename(columns={'key': 'localizacaokey'})
+    result = pd.merge(localizacao_filter, result, how="inner", on=['localizacaokey'])
+
+    convenio_filter = df_convenio[['key','SIT_CONVENIO']]
+    convenio_filter = convenio_filter.rename(columns={'key': 'conveniokey'})
+    result = pd.merge(convenio_filter, result, how="inner", on=['conveniokey'])
+
+    proposta_filter= df_propostas[['key','OBJETO_PROPOSTA']]
+    proposta_filter= proposta_filter.rename(columns={'key': 'propostakey',})
+    result = pd.merge(proposta_filter, result, how = "inner", on = ['propostakey'])
+    result= result.rename(columns={'OBJETO_PROPOSTA_x': 'OBJETO_PROPOSTA',})
     
+    result['count'] = result.groupby(['ano_texto'])['OBJETO_PROPOSTA'].transform('count')
+    df1 = pd.DataFrame(result.groupby(by=['ano_texto','DES_ORGAO','count','OBJETO_PROPOSTA'])['valorGlobal'].sum()) # Agrupando informações da tabela de ano e com a soma do valor global
+    df1.reset_index(inplace=True) # Removendo index para a coluna ano aparecer
+    grupo= result.groupby(['ano_texto', 'UF_PROPONENTE']).agg({'valorGlobal':'sum'})
+    st.write(grupo)
     
-    st.markdown('### Pergunta 2: Existe uma variação nos valores investidos em cada prestação de contas de convênios entre diferentes ministérios e estados?')
+
+    multiselect_orgao = st.multiselect('Orgão:',set(result['DES_ORGAO'].to_list()),"MINISTERIO DA DEFESA")
+    filtro = result[result["DES_ORGAO"].isin(multiselect_orgao)]
+    multiselect_estado = st.multiselect('Estado:',set(filtro['UF_PROPONENTE'].to_list()),'RO')
+    filtro = filtro[filtro["UF_PROPONENTE"].isin(multiselect_estado)]
+    situacao_conv = st.radio("Selecione a situação do convênio:", set(filtro['SIT_CONVENIO'].to_list()),index=3)
+    df_filtrado = filter_df(filtro, 'SIT_CONVENIO',situacao_conv)
+    lista_ano = set(df_filtrado['ano_texto'].map(int).to_list())
+    ano = st.slider(
+            label='Ano: ',
+            min_value=min(lista_ano),
+            max_value=max(lista_ano),
+            value=2014,
+            key="0")
+    
+    fig = px.bar(grupo.reset_index(), x='ano_texto', y='valorGlobal', color='valorGlobal', 
+                 facet_col='UF_PROPONENTE', facet_col_wrap=4,
+                 title='Variação nos Valores Investidos em Convênios por Ministérios e Estados ao Longo do Tempo',
+                 labels={'UF_PROPONENTE':'ESTADO'})
+    fig.update_layout(height=800, width=1500)
+    df_filtrado = filter_df(df_filtrado, 'ano_texto',str(ano))
+
    
+    
+    
+    
+   
+    st.markdown('### Pergunta 2: Existe uma variação nos valores investidos em cada prestação de contas de convênios entre diferentes ministérios e estados?')
+    st.write(fig)
     pass
 
 
