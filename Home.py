@@ -9,8 +9,9 @@ def main():
     st.sidebar.title(" Grupo 9 - Sincov")
 
     pages = {
-        "Introdução": page2, #page1
+        "Introdução": page1, #page1
         "Analise 1": page2,
+        "Analise 2":page3,
         "Tela antiga": tela_antiga,
     }
 
@@ -120,6 +121,9 @@ def page2():
 
     st.markdown('### Pergunta 1: Quais foram os objetos comprados com propostas aprovadas pelos ministérios e qual foi o valor gasto em cada um deles?')
     Analise_1(df_data,df_fato,df_propostas,df_localizacao,df_convenio)
+
+
+
 
 def tela_antiga():
     def show_dataset(dataset):
@@ -315,8 +319,28 @@ def tela_antiga():
     st.title('📈Analises dos dados siconv')
     Analise_1(df_data,df_fato,df_propostas,df_localizacao,df_convenio)
 
+def page3(): #Análise referente a pergunta 2: # Existe uma variação nos valores investidos em cada prestação de contas de convênios entre diferentes ministérios e estados?
+    def filter_df(df, column_name, value):
+            filter_sales_units = df[(df[column_name] == value)]
+            return filter_sales_units
+    def formato_real(valor):
+            return f'R${valor:.2f}'.replace('.', ',')
+        
+        
+    def formato_valor(res: float) -> str:
+        formato_string = f'R${res:,.2f}'.replace(',', 'X').replace('.', ',').replace('X', '.')
+        return formato_string
+
+    
+    
+    st.markdown('### Pergunta 2: Existe uma variação nos valores investidos em cada prestação de contas de convênios entre diferentes ministérios e estados?')
+   
+    pass
 
 
 
 if __name__ == "__main__":
     main()
+
+
+
