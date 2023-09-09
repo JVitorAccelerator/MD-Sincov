@@ -86,7 +86,9 @@ def page2():
         filtro = result[result["DES_ORGAO"].isin(multiselect_orgao)]
         multiselect_estado = st.multiselect('Estado:',set(filtro['UF_PROPONENTE'].to_list()),'RO')
         filtro = filtro[filtro["UF_PROPONENTE"].isin(multiselect_estado)]
-        situacao_conv = st.radio("Selecione a situação do convênio:", set(filtro['SIT_CONVENIO'].to_list()),index=3)
+        lista_convenio = (filtro['SIT_CONVENIO'].unique()).tolist()
+        index_conv = lista_convenio.index('Prestação de Contas Concluída')
+        situacao_conv = st.radio("Selecione a situação do convênio:", lista_convenio,index=index_conv)
         df_filtrado = filter_df(filtro, 'SIT_CONVENIO',situacao_conv)
         lista_ano = set(df_filtrado['ano_texto'].map(int).to_list())
         ano = st.slider(
