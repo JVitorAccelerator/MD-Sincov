@@ -102,8 +102,6 @@ def page2():
             key="0")
         df_filtrado = filter_df(df_filtrado, 'ano_texto',str(ano))
 
-
-
         # --------- Groupby nos dataframe ------------ 
         df_filtrado['mes_numeronoano'] = df_filtrado['mes_numeronoano'].astype(int)
         novo_df_ano = pd.DataFrame(df_filtrado.groupby(by=['mes_texto','mes_numeronoano','ano_texto'])['valorGlobal'].sum())
@@ -115,7 +113,10 @@ def page2():
 
         # --------- Gráficos ---------
         group_mes = df_filtrado.groupby('mes_numeronoano').agg({'mes_texto':'first'})
-        selected_mes = st.selectbox('Selecione o mês:',group_mes['mes_texto'].to_list(),index=2)
+        try:
+            selected_mes = st.selectbox('Selecione o mês:',group_mes['mes_texto'].to_list(),index=2)
+        except:
+            selected_mes = st.selectbox('Selecione o mês:',group_mes['mes_texto'].to_list())
         df_filtrado_mes = filter_df(df_filtrado,'mes_texto',selected_mes)
         df_filtrado_mes['count'] = df_filtrado_mes.groupby(['OBJETO_PROPOSTA'])['MUNIC_PROPONENTE'].transform('count')
         df_filtrado_mun_sum = df_filtrado_mes.groupby(['MUNIC_PROPONENTE']).agg({'valorGlobal':'sum', 'OBJETO_PROPOSTA':'count'}).reset_index()
