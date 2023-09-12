@@ -285,12 +285,12 @@ def page4():
     df_propostas = dataframe.Dados.dimproposta
     df_fato = dataframe.Dados.fatoexecucao    
 
-    st.markdown('### Quais são os 10 principais ministérios com base no valor total?')
+    st.markdown('### Pergunta 3: Quais são os 10 principais ministérios com base no valor total?')
     st.divider()
     Analise_1(df_data,df_fato,df_propostas,df_localizacao,df_convenio)
 
 def page5():
-    st.markdown('### Quais são os 10 parlamentares com maior valor arrecadado em comparação a quantidade de emendas por ano, mostrando a distribuição por estado e município?')
+    st.markdown('### Pergunta 4: Quais são os 10 parlamentares com maior valor arrecadado em comparação a quantidade de emendas por ano, mostrando a distribuição por estado e município?')
     st.divider()
 
     def filter_df(df, column_name, value):
