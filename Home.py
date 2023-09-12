@@ -186,28 +186,25 @@ def page3(): #Análise referente a pergunta 2: # Existe uma variação nos valor
     result['count'] = result.groupby(['ano_texto'])['OBJETO_PROPOSTA'].transform('count')
     df1 = pd.DataFrame(result.groupby(by=['ano_texto','DES_ORGAO','count','OBJETO_PROPOSTA'])['valorGlobal'].sum()) # Agrupando informações da tabela de ano e com a soma do valor global
     df1.reset_index(inplace=True) # Removendo index para a coluna ano aparecer
-    grupo= result.groupby(['ano_texto', 'UF_PROPONENTE']).agg({'valorGlobal':'sum'})
+    
 
     multiselect_orgao = st.multiselect('Orgão:',set(result['DES_ORGAO'].to_list()),"MINISTERIO DA DEFESA")
     filtro = result[result["DES_ORGAO"].isin(multiselect_orgao)]
-    multiselect_estado = st.multiselect('Estado:',set(filtro['UF_PROPONENTE'].to_list()),'RO')
+    multiselect_estado = st.multiselect('Estado:',set(filtro['UF_PROPONENTE'].to_list()), set(filtro['UF_PROPONENTE'].to_list()))
     filtro = filtro[filtro["UF_PROPONENTE"].isin(multiselect_estado)]
     situacao_conv = st.radio("Selecione a situação do convênio:", set(filtro['SIT_CONVENIO'].to_list()),index=3)
     df_filtrado = filter_df(filtro, 'SIT_CONVENIO',situacao_conv)
-    lista_ano = set(df_filtrado['ano_texto'].map(int).to_list())
-    ano = st.slider(
-            label='Ano: ',
-            min_value=min(lista_ano),
-            max_value=max(lista_ano),
-            value=2014,
-            key="0")
+    grupo= df_filtrado.groupby(['ano_texto', 'UF_PROPONENTE']).agg({'valorGlobal':'sum'})
+    
+
     
     fig = px.bar(grupo.reset_index(), x='ano_texto', y='valorGlobal', color='valorGlobal', 
                  facet_col='UF_PROPONENTE', facet_col_wrap=4,
                  title='Variação nos Valores Investidos em Convênios por Ministérios e Estados ao Longo do Tempo',
-                 labels={'UF_PROPONENTE':'ESTADO'})
-    fig.update_layout(height=800, width=1500)
-    df_filtrado = filter_df(df_filtrado, 'ano_texto',str(ano))
+                 labels={'UF_PROPONENTE':'ESTADO', 'ano_texto':'', 'valorGlobal':''}, text= 'valorGlobal')
+    
+    fig.update_layout(height=1000, width=1000)
+    
    
     st.plotly_chart(fig)
     pass
