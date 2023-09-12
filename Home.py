@@ -13,10 +13,9 @@ def main():
     pages = {
         "Introdução": page1,
         "Pergunta 1": page2,
-        "Pergunta 2":page3,
+        "Pergunta 2": page3,
         "pergunta 3": page4,
         "pergunta 4": page5,
-        "Tela antiga": tela_antiga,
     }
 
     st.sidebar.markdown("## Análises com Streamlit 📊")
@@ -46,7 +45,7 @@ def page1():
             '<li class="content-size">Quais foram os objetos comprados com propostas aprovadas pelos ministérios e qual foi o valor gasto em cada um deles?</li>'\
             '<li class="content-size">Existe uma variação nos valores investidos em cada prestação de contas de convênios entre diferentes ministérios e estados?</li>'\
             '<li class="content-size">Quais são os 10 principais ministérios com base no valor total?</li>'\
-            '<li class="content-size">Quais são as 10 emendas parlamentares com maior valor investido, mostrando em qual estado e município esse valor foi investido e quanto recebeu?</li>'\
+            '<li class="content-size">Quais são os 10 parlamentares com maior valor arrecadado em comparação a quantidade de emendas por ano, mostrando a distribuição por estado e município?</li>'\
             '</ul>'
 
 
@@ -258,6 +257,7 @@ def page4():
         grouped_municipio = df_filtrado.groupby(['MUNIC_PROPONENTE'])['valorGlobal'].sum().reset_index()
         sort_group_municipio = grouped_municipio.sort_values(by='valorGlobal', ascending=False).head(10)
         
+        st.markdown(' ')
         plt.figure(figsize=(15, 7))
         ax = sns.barplot(data=sort_group_maior, x="DES_ORGAO", y="valorGlobal", color="green")
         #ax.bar_label(ax.containers[0])
@@ -290,8 +290,89 @@ def page4():
     Analise_1(df_data,df_fato,df_propostas,df_localizacao,df_convenio)
 
 def page5():
-    st.markdown('### Quais são as 10 emendas parlamentares com maior valor investido, mostrando em qual estado e município esse valor foi investido e quanto recebeu?')
+    st.markdown('### Quais são os 10 parlamentares com maior valor arrecadado em comparação a quantidade de emendas por ano, mostrando a distribuição por estado e município?')
     st.divider()
+
+    def filter_df(df, column_name, value):
+        filter_sales_units = df[(df[column_name] == value)]
+        return filter_sales_units
+    
+    df_convenio = dataframe.Dados.dimconvenio
+    df_data = dataframe.Dados.dimdata
+    df_emenda = dataframe.Dados.dimemenda
+    df_localizacao = dataframe.Dados.dimlocalizacao
+    df_parlamentar = dataframe.Dados.dimparlamentar
+    df_propostas = dataframe.Dados.dimproposta
+    df_fato = dataframe.Dados.fatoexecucao 
+
+    # Carregando dataframes com merge na chave
+    df_dataYear = df_data[["keyData","data_id","mes_texto","ano_texto","mes_numeronoano"]].copy()
+    df_dataYear = df_dataYear.rename(columns={'keyData': 'datakey'})
+    result = pd.merge(df_dataYear, df_fato, how="inner", on=['datakey']) 
+
+    df_proposta_filter = df_propostas[['key','DES_ORGAO','NATUREZA_JURIDICA','SIT_PROPOSTA','OBJETO_PROPOSTA']]
+    df_proposta_filter = df_proposta_filter.rename(columns={'key': 'propostakey'})
+    result = pd.merge(df_proposta_filter, result, how="inner", on=['propostakey'])
+
+    localizacao_filter = df_localizacao[['key','UF_PROPONENTE','MUNIC_PROPONENTE','NM_PROPONENTE']]
+    localizacao_filter = localizacao_filter.rename(columns={'key': 'localizacaokey'})
+    result = pd.merge(localizacao_filter, result, how="inner", on=['localizacaokey'])
+
+    emendas = df_emenda[['key','NR_EMENDA','BENEFICIARIO_EMENDA']]
+    emendas = emendas.rename(columns={'key': 'emendakey'})
+    result = pd.merge(emendas, result, how="inner", on=['emendakey'])
+
+    parlamentar = df_parlamentar[['key','NOME_PARLAMENTAR','TIPO_PARLAMENTAR']]
+    parlamentar = parlamentar.rename(columns={'key': 'parlamentarkey'})
+    result = pd.merge(parlamentar, result, how="inner", on=['parlamentarkey'])
+
+    convenio_filter = df_convenio[['key','SIT_CONVENIO']]
+    convenio_filter = convenio_filter.rename(columns={'key': 'conveniokey'})
+    result = pd.merge(convenio_filter, result, how="inner", on=['conveniokey'])
+
+    lista_convenio = (result['SIT_CONVENIO'].unique()).tolist()
+    index_conv = lista_convenio.index('Prestação de Contas Concluída')
+    situacao_conv = st.radio("Selecione a situação do convênio:", lista_convenio,index=index_conv)
+    filtro = filter_df(result, 'SIT_CONVENIO',situacao_conv)
+
+    lista_ano = set(filtro['ano_texto'].map(int).to_list())
+    ano = st.slider(
+        label='Ano: ',
+        min_value=min(lista_ano),
+        max_value=max(lista_ano),
+        value=2014,
+        key="0")
+    df_filtrado = filter_df(filtro, 'ano_texto',str(ano))
+    
+
+    st.divider()
+    st.markdown('##### Observando isoladamente por parlamentar a quantidade de emendas e valor Total:')
+    selecao_parlamentar = st.radio(
+    "Selecione:",
+    ("Quantidade de emenda", "Valor total em R$"),
+    horizontal=True)
+    valor = "NR_EMENDA" if selecao_parlamentar == "Quantidade de emenda" else "valorGlobal"
+    group_parlamentar = df_filtrado.groupby('NOME_PARLAMENTAR').agg({'valorGlobal':'sum','NR_EMENDA':'count'}).reset_index()
+    sort_group_parlamentar = group_parlamentar.sort_values(by=valor, ascending=False).head(10)
+    #group_parlamentar = df_filtrado.groupby('DES_ORGAO')['valorGlobal'].sum().reset_index() #municipio
+    
+    fig_parlamentares = px.area(sort_group_parlamentar, x="NOME_PARLAMENTAR", y=valor, markers=True, text=valor, title=f'Top 10 Parlamentares por {selecao_parlamentar} no ano de {ano}',template='seaborn')
+    fig_parlamentares.update_traces(textposition="top right")
+    fig_parlamentares.update_layout(yaxis={'visible': False, 'showticklabels': False},xaxis={'title':''})
+    st.plotly_chart(fig_parlamentares)
+
+    st.markdown(f"##### Quais as municípios por quantidade de emenda e valor total investido")
+    selectbox_parlamentar = st.selectbox("***Selecione o parlamentar:***",set(df_filtrado['NOME_PARLAMENTAR'].to_list()))
+    filtro_parlamentar = filter_df(df_filtrado, 'NOME_PARLAMENTAR',selectbox_parlamentar)
+    group_parlamentar_mun = filtro_parlamentar.groupby(['NOME_PARLAMENTAR','UF_PROPONENTE','MUNIC_PROPONENTE']).agg({'valorGlobal':'sum','NR_EMENDA':'count'}).reset_index()
+    set_uf_proponente = set(group_parlamentar_mun['UF_PROPONENTE'])
+    uf_proponente = set_uf_proponente.pop()
+    grafico_linha = px.line(group_parlamentar_mun, x="MUNIC_PROPONENTE", y="valorGlobal", color="NR_EMENDA", text='valorGlobal', labels={'MUNIC_PROPONENTE':'Município','NR_EMENDA':'Quantidade de Emenda'}, title=f"Estado: {uf_proponente}", template='seaborn')
+    grafico_linha.update_traces(textposition="bottom right")
+    grafico_linha.update_layout(yaxis={'title':''},xaxis={'title':''})
+    st.plotly_chart(grafico_linha)
+
+
 
 def tela_antiga():
     def show_dataset(dataset):
